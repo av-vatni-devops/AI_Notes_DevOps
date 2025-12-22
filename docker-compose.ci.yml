@@ -1,0 +1,24 @@
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo-test
+
+  backend-test:
+    build:
+      context: ./server
+      target: test
+    environment:
+      NODE_ENV: test
+      MONGO_URI: mongodb://mongo:27017/testdb
+      JWT_SECRET: test_jwt_secret
+    depends_on:
+      - mongo
+
+  frontend-test:
+    build:
+      context: ./client/my-project
+      target: test
+    environment:
+      API_BASE_URL: http://backend-test:5000
+    depends_on:
+      - backend-test

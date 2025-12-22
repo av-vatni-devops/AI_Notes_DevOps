@@ -1,26 +1,23 @@
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-
-let mongo;
+require('dotenv').config({ path: '.env.test' });
 
 beforeAll(async () => {
-  process.env.NODE_ENV = 'test';
-  process.env.JWT_SECRET = 'test_jwt_secret';
+  if (!process.env.MONGO_URI) {
+    throw new Error('MONGO_URI is not defined');
+  }
 
-  mongo = await MongoMemoryServer.create();
-  const uri = mongo.getUri();
-
-  await mongoose.connect(uri);
+  await mongoose.connect(process.env.MONGO_URI);
 });
 
 afterEach(async () => {
+  if (!mongoose.connection.db) return;
+
   const collections = await mongoose.connection.db.collections();
-  for (let collection of collections) {
+  for (const collection of collections) {
     await collection.deleteMany({});
   }
 });
 
 afterAll(async () => {
   await mongoose.connection.close();
-  await mongo.stop();
 });
