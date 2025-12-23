@@ -53,8 +53,8 @@ pipeline {
         stage('Build Production Images'){
             steps {
                 sh '''
-                docker build -t av-vatni/ai-notes-backend:${GIT_COMMIT} server
-                docker build -t av-vatni/ai-notes-frontend:${GIT_COMMIT} client/my-project
+                docker build -t avvatni/ai-notes-backend:${GIT_COMMIT} server
+                docker build -t avvatni/ai-notes-frontend:${GIT_COMMIT} client/my-project
                 '''
             }
         }
@@ -78,8 +78,8 @@ pipeline {
         stage('Push Images to Docker Hub') {
   steps {
     sh '''
-      docker push av-vatni/ai-notes-backend:${GIT_COMMIT}
-      docker push av-vatni/ai-notes-frontend:${GIT_COMMIT}
+      docker push avvatni/ai-notes-backend:${GIT_COMMIT}
+      docker push avvatni/ai-notes-frontend:${GIT_COMMIT}
     '''
   }
 }
