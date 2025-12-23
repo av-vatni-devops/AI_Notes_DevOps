@@ -21,14 +21,14 @@ pipeline {
         stage('Docker infra (Debug)') {
             steps {
                 sh 'docker --version'
-                sh 'docker-compose version'
+                sh 'docker compose version'
             }
         }
 
         stage('Clean previous CI containers') {
             steps {
                 sh '''
-                  docker-compose -f docker-compose.ci.yml down -v --remove-orphans || true
+                  docker compose -f docker-compose.ci.yml down -v --remove-orphans || true
                 '''
             }
         }
@@ -37,7 +37,7 @@ pipeline {
             steps {
                 ansiColor('xterm') {
                     sh '''
-                      docker-compose -f docker-compose.ci.yml up \
+                      docker compose -f docker-compose.ci.yml up \
                         --build \
                         --abort-on-container-exit
                     '''
@@ -48,7 +48,7 @@ pipeline {
         stage('Cleanup after CI') {
             steps {
                 sh '''
-                  docker-compose -f docker-compose.ci.yml down -v --remove-orphans
+                  docker compose -f docker-compose.ci.yml down -v --remove-orphans
                 '''
             }
         }
