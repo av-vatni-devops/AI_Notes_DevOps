@@ -3,63 +3,66 @@ pipeline {
 
     options {
         timestamps()
-        ansiColor('xterm')
     }
+
     environment {
         DOCKER_BUILDKIT = '1'
         COMPOSE_DOCKER_CLI_BUILD = '1'
     }
 
     stages {
-        stage('Checkout code'){
+
+        stage('Checkout code') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Docker infr(Debug)'){
+        stage('Docker infra (Debug)') {
             steps {
                 sh 'docker --version'
                 sh 'docker-compose version'
             }
         }
 
-        stage('Clean previous CI containers'){
-            steps{
-                sh ''' 
-                docker-compose -f docker-compose.ci.yml down -v --remove-orphans || true
-                '''
-            }
-        }
-
-        stage('Build & Run Tests(CI)'){
-            steps{
-                sh ''' 
-                docker-compose -f docker-compose.ci.yml up \
-                --build \
-                --abort-on-container-exit
-                '''
-            }
-        }
-
-        stage('Cleanup after CI'){
-            steps{
+        stage('Clean previous CI containers') {
+            steps {
                 sh '''
-                docker-compose -f docker-compose.ci.yml down -v --remove-orphans
+                  docker-compose -f docker-compose.ci.yml down -v --remove-orphans || true
                 '''
             }
         }
 
-        post{
-            success {
-                echo 'CI pipeline passed successfully!'
+        stage('Build & Run Tests (CI)') {
+            steps {
+                ansiColor('xterm') {
+                    sh '''
+                      docker-compose -f docker-compose.ci.yml up \
+                        --build \
+                        --abort-on-container-exit
+                    '''
+                }
             }
-            failure {
-                echo 'CI pipeline failed. Check logs above'
+        }
+
+        stage('Cleanup after CI') {
+            steps {
+                sh '''
+                  docker-compose -f docker-compose.ci.yml down -v --remove-orphans
+                '''
             }
-            always {
-                sh 'docker system prune -f || true'
-            }
+        }
+    }
+
+    post {
+        success {
+            echo 'CI pipeline passed successfully!'
+        }
+        failure {
+            echo 'CI pipeline failed. Check logs above.'
+        }
+        always {
+            sh 'docker system prune -f || true'
         }
     }
 }
