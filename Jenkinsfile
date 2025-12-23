@@ -49,6 +49,38 @@ pipeline {
                 '''
             }
         }
+
+        stage('Build Production Images'){
+            steps {
+                sh '''
+                docker build -t av-vatni/ai-notes-backend:${GIT_COMMIT} server
+                docker build -t av-vatni/ai-notes-frontend:${GIT_COMMIT} client/my-project
+                '''
+            }
+        }
+
+        stage('Docker Loogin'){
+            steps{
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockrehub-creds-id',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordsVariable: 'DOCKER_PASS'
+                )]){
+                    sh ''' 
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push Images to Docker Hub'){
+            steps {
+                sh '''
+                docker push av-vatni/ai-notes-backend:${GIT_COMMIT}
+                docker push av-vatni/ai-notes-frontend:${GIT_COMMIT}
+                '''
+            }
+        }
     }
 
     post {
@@ -59,6 +91,7 @@ pipeline {
             echo 'CI pipeline failed. Check logs above.'
         }
         always {
+            sh 'docker logout || true'
             sh 'docker system prune -f || true'
         }
     }
