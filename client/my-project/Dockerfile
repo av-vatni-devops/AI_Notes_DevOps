@@ -14,8 +14,14 @@ RUN npm install
 
 COPY . .
 
-ENTRYPOINT [  "npx", "playwright", "test", "--config=playwright.ci.config.ts"]
+# Build frontend
+RUN npm run build
 
+# Playwright will hit the preview server
+ENV CI=true
+EXPOSE 4173
+
+CMD sh -c "npm run preview -- --host & npx playwright test --config=playwright.ci.config.ts"
 
 # ---- Build Stage---- #
 FROM base AS build

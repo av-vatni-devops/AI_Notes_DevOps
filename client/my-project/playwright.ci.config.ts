@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 60_000,
 
   use: {
-    baseURL: process.env.API_BASE_URL || 'http://localhost:5000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:4173',
     headless: true,
   },
 });
