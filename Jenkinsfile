@@ -11,7 +11,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout code') {
             steps {
                 checkout scm
@@ -35,20 +34,18 @@ pipeline {
 
         stage('Build & Run Tests (CI)') {
             steps {
-                ansiColor('xterm') {
-                    sh '''
-                      docker compose -f docker-compose.ci.yml up \
-                        --build \
-                        --abort-on-container-exit
-                    '''
-                }
+                sh '''
+                  docker compose -f docker-compose.ci.yml up \
+                  --build \
+                  --abort-on-container-exit
+                '''
             }
         }
 
         stage('Cleanup after CI') {
             steps {
                 sh '''
-                  docker compose -f docker-compose.ci.yml down -v --remove-orphans
+                  docker compose -f docker-compose.ci.yml down -v --remove-orphans || true
                 '''
             }
         }
