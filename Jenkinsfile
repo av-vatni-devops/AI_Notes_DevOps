@@ -78,8 +78,17 @@ pipeline {
         stage('Push Images to Docker Hub') {
   steps {
     sh '''
+       # Push commit-specific tags
       docker push avvatni/ai-notes-backend:${GIT_COMMIT}
       docker push avvatni/ai-notes-frontend:${GIT_COMMIT}
+
+      # Tag images as latest
+      docker tag avvatni/ai-notes-backend:${GIT_COMMIT} avvatni/ai-notes-backend:latest
+      docker tag avvatni/ai-notes-frontend:${GIT_COMMIT} avvatni/ai-notes-frontend:latest
+
+      # Push latest tags
+      docker push avvatni/ai-notes-backend:latest
+      docker push avvatni/ai-notes-frontend:latest
     '''
   }
 }
