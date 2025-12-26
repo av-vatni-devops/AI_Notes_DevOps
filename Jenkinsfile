@@ -53,8 +53,8 @@ pipeline {
         stage('Build Production Images'){
             steps {
                 sh '''
-                docker build -t avvatni/ai-notes-backend:${GIT_COMMIT} server
-                docker build -t avvatni/ai-notes-frontend:${GIT_COMMIT} client/my-project
+                docker build -t avvatni/ai-notes-backend:${GIT_COMMIT} --target prod ./server
+                docker build -t avvatni/ai-notes-frontend:${GIT_COMMIT} ./client/my-project
                 '''
             }
         }
@@ -76,22 +76,54 @@ pipeline {
 }
 
         stage('Push Images to Docker Hub') {
-  steps {
-    sh '''
-       # Push commit-specific tags
-      docker push avvatni/ai-notes-backend:${GIT_COMMIT}
-      docker push avvatni/ai-notes-frontend:${GIT_COMMIT}
+            steps {
+                sh '''
+                    # Push commit-specific tags
+                    docker push avvatni/ai-notes-backend:${GIT_COMMIT}
+                    docker push avvatni/ai-notes-frontend:${GIT_COMMIT}
 
-      # Tag images as latest
-      docker tag avvatni/ai-notes-backend:${GIT_COMMIT} avvatni/ai-notes-backend:latest
-      docker tag avvatni/ai-notes-frontend:${GIT_COMMIT} avvatni/ai-notes-frontend:latest
+                    # Tag images as latest
+                    docker tag avvatni/ai-notes-backend:${GIT_COMMIT} avvatni/ai-notes-backend:latest
+                    docker tag avvatni/ai-notes-frontend:${GIT_COMMIT} avvatni/ai-notes-frontend:latest
 
-      # Push latest tags
-      docker push avvatni/ai-notes-backend:latest
-      docker push avvatni/ai-notes-frontend:latest
-    '''
-  }
-}
+                    # Push latest tags
+                    docker push avvatni/ai-notes-backend:latest
+                    docker push avvatni/ai-notes-frontend:latest
+                '''
+            }
+        }
+
+        /* ===================== CD STARTS HERE ===================== */
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'MONGO_ATLAS_URI', variable: 'MONGO_URI'),
+                    string(credentialsId: 'GEMINI_API_KEY', variable: 'GEMINI_API_KEY'),
+                    string(credentialsId: 'JWT_SECRET', variable: 'JWT_SECRET')
+                ]) {
+                    sh '''
+                        kubectl apply -f k8s/namespace.yml
+                        kubectl apply -f k8s/configmap.yml
+
+                        kubectl create secret generic ai-notes-secrets \
+                            --namespace ai-notes \
+                            --from-literal=MONGO_URI=$MONGO_URI \
+                            --from-literal=GEMINI_API_KEY=$GEMINI_API_KEY \
+                            --from-literal=JWT_SECRET=$JWT_SECRET \
+                            --dry-run=client -o yaml | kubectl apply -f -
+
+                        kubectl apply -f k8s/mongo-deployment.yml
+                        kubectl apply -f k8s/mongo-service.yml
+                        kubectl apply -f k8s/backend-deployment.yml
+                        kubectl apply -f k8s/frontend-deployment.yml
+                        kubectl apply -f k8s/services.yml
+
+                        kubectl rollout status deployment/ai-notes-backend -n ai-notes --timeout=5m
+                        kubectl rollout status deployment/ai-notes-frontend -n ai-notes --timeout=5m
+                    '''
+                }
+            }
+        }
     }
 
     post {

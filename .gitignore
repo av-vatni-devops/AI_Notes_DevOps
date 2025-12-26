@@ -56,3 +56,15 @@ config.local.json
 # Upload directories
 **/uploads/
 server/uploads/
+
+# Kubernetes secrets (do not commit)
+k8s/secrets.yml
+
+# Test results and artifacts
+**/test-results/
+**/playwright-report/
+**/.playwright/
+
+# Backup files
+*.bundle
+*.backup
