@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const aiRoutes = require('./routes/ai');
 const uploadRoutes = require('./routes/upload');
 const auth = require('./middleware/auth');
+const { register, httpRequestDuration, httpRequestTotal, mongoConnectionStatus } = require('./metrics');
 
 const app = express();
 
@@ -25,6 +26,31 @@ if (config.clientUrl) {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Metrics middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    const route = req.route ? req.route.path : req.path;
+    
+    httpRequestDuration.labels(req.method, route, res.statusCode).observe(duration);
+    httpRequestTotal.labels(req.method, route, res.statusCode).inc();
+  });
+  
+  next();
+});
+
+// Metrics endpoint
+app.get("/metrics", async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (error) {
+    res.status(500).end(error);
+  }
+});
 
 // Base route
 app.get("/", (req, res) => {

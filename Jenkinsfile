@@ -141,6 +141,18 @@ pipeline {
                         echo "Creating services..."
                         kubectl apply -f k8s/services.yml
 
+                        echo "Deploying Prometheus..."
+                        kubectl apply -f k8s/prometheus-rbac.yml
+                        kubectl apply -f k8s/prometheus-config.yml
+                        kubectl apply -f k8s/prometheus-deployment.yml
+                        kubectl apply -f k8s/prometheus-service.yml
+
+                        echo "Deploying Grafana..."
+                        kubectl apply -f k8s/grafana-config.yml
+                        kubectl apply -f k8s/grafana-dashboard-config.yml
+                        kubectl apply -f k8s/grafana-deployment.yml
+                        kubectl apply -f k8s/grafana-service.yml
+
                         echo "Waiting for backend rollout..."
                         kubectl rollout status deployment/ai-notes-backend -n ai-notes --timeout=5m || {
                             echo "Backend rollout failed, checking pod status..."
@@ -157,9 +169,17 @@ pipeline {
                             exit 1
                         }
                         
+                        echo "Waiting for monitoring stack..."
+                        kubectl wait --for=condition=available --timeout=120s deployment/prometheus -n ai-notes || true
+                        kubectl wait --for=condition=available --timeout=120s deployment/grafana -n ai-notes || true
+                        
                         echo "Deployment completed successfully!"
                         kubectl get pods -n ai-notes
                         kubectl get svc -n ai-notes
+                        echo ""
+                        echo "📊 Monitoring Stack:"
+                        echo "   - Prometheus: http://localhost:30008"
+                        echo "   - Grafana: http://localhost:30009 (admin/admin)"
                     '''
                 }
             }

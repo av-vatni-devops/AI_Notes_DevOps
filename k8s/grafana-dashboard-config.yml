@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: ai-notes
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /etc/grafana/provisioning/dashboards
+  backend-dashboard.json: |
+    {
+      "title": "AI Notes Backend Metrics",
+      "tags": ["backend", "ai-notes"],
+      "timezone": "browser",
+      "schemaVersion": 27,
+      "version": 1,
+      "refresh": "10s",
+      "panels": [
+        {
+          "id": 1,
+          "title": "HTTP Request Rate",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "rate(http_requests_total[5m])",
+              "legendFormat": "{{method}} {{route}}",
+              "refId": "A"
+            }
+          ],
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+        },
+        {
+          "id": 2,
+          "title": "HTTP Request Duration (p95)",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "p95",
+              "refId": "A"
+            }
+          ],
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+        },
+        {
+          "id": 3,
+          "title": "MongoDB Connection Status",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "mongo_connection_status",
+              "legendFormat": "Connection Status",
+              "refId": "A"
+            }
+          ],
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+        },
+        {
+          "id": 4,
+          "title": "Total HTTP Requests",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "sum(increase(http_requests_total[1h]))",
+              "refId": "A"
+            }
+          ],
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 8}
+        },
+        {
+          "id": 5,
+          "title": "Error Rate",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{status_code=~\"5..\"}[5m]))",
+              "refId": "A"
+            }
+          ],
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 8}
+        }
+      ]
+    }

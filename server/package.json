@@ -23,7 +23,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.14.1",
     "multer": "^2.0.2",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "prom-client": "^15.1.0"
   },
   "devDependencies": {
     "jest": "^30.2.0",
