@@ -102,9 +102,15 @@ pipeline {
                     string(credentialsId: 'JWT_SECRET', variable: 'JWT_SECRET')
                 ]) {
                     sh '''
+                        set -e
+                        
+                        echo "Creating namespace..."
                         kubectl apply -f k8s/namespace.yml
+                        
+                        echo "Creating ConfigMap..."
                         kubectl apply -f k8s/configmap.yml
 
+                        echo "Creating/updating secrets..."
                         kubectl create secret generic ai-notes-secrets \
                             --namespace ai-notes \
                             --from-literal=MONGO_URI=$MONGO_URI \
@@ -112,14 +118,42 @@ pipeline {
                             --from-literal=JWT_SECRET=$JWT_SECRET \
                             --dry-run=client -o yaml | kubectl apply -f -
 
+                        echo "Deploying MongoDB..."
                         kubectl apply -f k8s/mongo-deployment.yml
                         kubectl apply -f k8s/mongo-service.yml
+                        
+                        echo "Waiting for MongoDB to be ready..."
+                        kubectl wait --for=condition=available --timeout=300s deployment/mongo -n ai-notes || true
+                        kubectl wait --for=condition=ready pod -l app=mongo -n ai-notes --timeout=300s || true
+
+                        echo "Deploying backend..."
                         kubectl apply -f k8s/backend-deployment.yml
+                        
+                        echo "Deploying frontend..."
                         kubectl apply -f k8s/frontend-deployment.yml
+                        
+                        echo "Creating services..."
                         kubectl apply -f k8s/services.yml
 
-                        kubectl rollout status deployment/ai-notes-backend -n ai-notes --timeout=5m
-                        kubectl rollout status deployment/ai-notes-frontend -n ai-notes --timeout=5m
+                        echo "Waiting for backend rollout..."
+                        kubectl rollout status deployment/ai-notes-backend -n ai-notes --timeout=5m || {
+                            echo "Backend rollout failed, checking pod status..."
+                            kubectl describe pod -l app=backend -n ai-notes
+                            kubectl logs -l app=backend -n ai-notes --tail=50
+                            exit 1
+                        }
+                        
+                        echo "Waiting for frontend rollout..."
+                        kubectl rollout status deployment/ai-notes-frontend -n ai-notes --timeout=5m || {
+                            echo "Frontend rollout failed, checking pod status..."
+                            kubectl describe pod -l app=frontend -n ai-notes
+                            kubectl logs -l app=frontend -n ai-notes --tail=50
+                            exit 1
+                        }
+                        
+                        echo "Deployment completed successfully!"
+                        kubectl get pods -n ai-notes
+                        kubectl get svc -n ai-notes
                     '''
                 }
             }
