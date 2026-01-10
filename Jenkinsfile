@@ -111,9 +111,11 @@ pipeline {
                         kubectl apply -f k8s/configmap.yml
 
                         echo "Creating/updating secrets..."
+                        # Use local MongoDB service in K8s cluster instead of Atlas
+                        LOCAL_MONGO_URI="mongodb://mongo:27017/neura_notes"
                         kubectl create secret generic ai-notes-secrets \
                             --namespace ai-notes \
-                            --from-literal=MONGO_URI=$MONGO_URI \
+                            --from-literal=MONGO_URI=$LOCAL_MONGO_URI \
                             --from-literal=GEMINI_API_KEY=$GEMINI_API_KEY \
                             --from-literal=JWT_SECRET=$JWT_SECRET \
                             --dry-run=client -o yaml | kubectl apply -f -
@@ -125,6 +127,10 @@ pipeline {
                         echo "Waiting for MongoDB to be ready..."
                         kubectl wait --for=condition=available --timeout=300s deployment/mongo -n ai-notes || true
                         kubectl wait --for=condition=ready pod -l app=mongo -n ai-notes --timeout=300s || true
+                        
+                        # Give MongoDB additional time to fully initialize and accept connections
+                        echo "Waiting for MongoDB to fully initialize (15 seconds)..."
+                        sleep 15
 
                         echo "Deploying backend..."
                         kubectl apply -f k8s/backend-deployment.yml
